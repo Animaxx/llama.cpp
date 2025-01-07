@@ -1562,6 +1562,7 @@ enum llm_chat_template {
     LLM_CHAT_TEMPLATE_MISTRAL_V3_TEKKEN,
     LLM_CHAT_TEMPLATE_MISTRAL_V7,
     LLM_CHAT_TEMPLATE_PHI_3,
+    LLM_CHAT_TEMPLATE_FALCON_3,
     LLM_CHAT_TEMPLATE_ZEPHYR,
     LLM_CHAT_TEMPLATE_MONARCH,
     LLM_CHAT_TEMPLATE_GEMMA,
@@ -1593,6 +1594,7 @@ static const std::map<std::string, llm_chat_template> LLM_CHAT_TEMPLATES = {
     { "mistral-v3-tekken", LLM_CHAT_TEMPLATE_MISTRAL_V3_TEKKEN },
     { "mistral-v7",        LLM_CHAT_TEMPLATE_MISTRAL_V7        },
     { "phi3",              LLM_CHAT_TEMPLATE_PHI_3             },
+    { "falcon3",           LLM_CHAT_TEMPLATE_FALCON_3          },
     { "zephyr",            LLM_CHAT_TEMPLATE_ZEPHYR            },
     { "monarch",           LLM_CHAT_TEMPLATE_MONARCH           },
     { "gemma",             LLM_CHAT_TEMPLATE_GEMMA             },
@@ -6377,7 +6379,8 @@ static void llm_load_vocab(
             } else if (
                     tokenizer_pre == "llama3"   ||
                     tokenizer_pre == "llama-v3" ||
-                    tokenizer_pre == "llama-bpe") {
+                    tokenizer_pre == "llama-bpe" ||
+                    tokenizer_pre == "falcon3") {
                 vocab.type_pre = LLAMA_VOCAB_PRE_TYPE_LLAMA3;
                 vocab.tokenizer_ignore_merges = true;
                 vocab.tokenizer_add_bos = true;
@@ -21794,6 +21797,8 @@ static llm_chat_template llama_chat_detect_template(const std::string & tmpl) {
         }
     } else if (tmpl_contains("<|assistant|>") && tmpl_contains("<|end|>")) {
         return LLM_CHAT_TEMPLATE_PHI_3;
+    } else if (tmpl_contains("<|assistant|>") && tmpl_contains("<|user|>")) {
+        return LLM_CHAT_TEMPLATE_FALCON_3;
     } else if (tmpl_contains("<|user|>") && tmpl_contains("<|endoftext|>")) {
         return LLM_CHAT_TEMPLATE_ZEPHYR;
     } else if (tmpl_contains("bos_token + message['role']")) {
@@ -21944,6 +21949,15 @@ static int32_t llama_chat_apply_template_internal(
         if (add_ass) {
             ss << "<|assistant|>\n";
         }
+    } else if (tmpl == LLM_CHAT_TEMPLATE_FALCON_3) {
+         // Falcon 3
+         for (auto message : chat) {
+             std::string role(message->role);
+             ss << "<|" << role << "|>\n" << message->content << "\n";
+         }
+         if (add_ass) {
+             ss << "<|assistant|>\n";
+         }
     } else if (tmpl == LLM_CHAT_TEMPLATE_ZEPHYR) {
         // zephyr template
         for (auto message : chat) {
