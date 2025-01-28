@@ -34,7 +34,13 @@ struct llama_vocab {
     std::vector<id>    cache_special_tokens;
     std::vector<token> cache_token_to_piece; // llama_token_to_piece(special = true);
 
-    std::map<std::pair<std::string, std::string>, int> bpe_ranks;
+    struct pair_hash {
+         size_t operator()(const std::pair<std::string, std::string> & p) const {
+             return std::hash<std::string>{}(p.first) ^  //create some hash for pair
+                    (std::hash<std::string>{}(p.second) << 1);
+         }
+     };
+     std::unordered_map<std::pair<std::string, std::string>, int, pair_hash> bpe_ranks;
 
     // default LLaMA special tokens
     // TODO: should we set all of these to LLAMA_TOKEN_NULL?
