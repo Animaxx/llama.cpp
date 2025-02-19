@@ -257,9 +257,17 @@ void llama_sampler_free(struct llama_sampler * smpl) {
 
 llama_token llama_sampler_sample(struct llama_sampler * smpl, struct llama_context * ctx, int32_t idx) {
     const auto * logits = llama_get_logits_ith(ctx, idx);
+    if (!logits) {
+        GGML_ASSERT(false && "logits array is null");
+        return 0; // Return safe default
+    }
 
     const int n_vocab = llama_n_vocab(llama_get_model(ctx));
-
+    if (n_vocab <= 0) {
+        GGML_ASSERT(false && "invalid vocabulary size");
+        return 0;
+    }
+    
     // TODO: do not allocate each time
     std::vector<llama_token_data> cur;
     cur.reserve(n_vocab);
